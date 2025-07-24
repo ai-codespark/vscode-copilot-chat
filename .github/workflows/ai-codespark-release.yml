@@ -1,0 +1,119 @@
+name: ai-codespark-release
+
+on:
+  release:
+    types:
+      - created
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win32
+            arch: x64
+            npm_config_arch: x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            npm_config_arch: x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Checkout tag
+        run: git checkout ${GITHUB_REF#refs/tags/}
+      - name: Use Node.js from .nvmrc
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: 'npm'
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      - name: Install dependencies
+        run: npm ci
+        env:
+          npm_config_arch: ${{ matrix.npm_config_arch }}
+      - name: Run postinstall script
+        run: npm run postinstall
+      - name: Build packages (Windows)
+        if: runner.os == 'Windows'
+        run: npm run build
+        shell: pwsh
+      - name: Build packages (Unix)
+        if: runner.os != 'Windows'
+        run: npm run build
+      - name: Set variables (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: echo "target=${{ matrix.platform }}-${{ matrix.arch }}" >> $env:GITHUB_ENV
+      - name: Set variables (Unix)
+        if: runner.os != 'Windows'
+        run: echo "target=${{ matrix.platform }}-${{ matrix.arch }}" >> $GITHUB_ENV
+      - name: Package the extension
+        run: npx vsce package --target ${{ env.target }} --out "copilot-chat-${{ env.target }}.vsix"
+      - name: Verify package
+        run: |
+          ls -la *.vsix
+          file copilot-chat-${{ env.target }}.vsix
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: copilot-chat-${{ env.target }}-vsix
+          path: "copilot-chat-${{ env.target }}.vsix"
+          retention-days: 7
+
+  release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-vsix"
+          path: vsix-artifacts
+          merge-multiple: true
+      - name: List downloaded artifacts
+        run: ls -la vsix-artifacts/
+      - name: Create release notes
+        run: |
+          echo "## Release Notes" > release-notes.md
+          echo "" >> release-notes.md
+          echo "This release includes builds for:" >> release-notes.md
+          echo "- Windows x64" >> release-notes.md
+          echo "- Linux x64" >> release-notes.md
+          echo "" >> release-notes.md
+          echo "### Installation" >> release-notes.md
+          echo "Download the appropriate .vsix file for your platform and install it using:" >> release-notes.md
+          echo "\`code --install-extension copilot-chat-<platform>-<arch>.vsix\`" >> release-notes.md
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "AI CodeSpark Release ${{ github.ref_name }}"
+          body_path: release-notes.md
+          files: |
+            vsix-artifacts/*.vsix
+          token: ${{ secrets.AI_CODESPARK_TOKEN }}
+          repository: ai-codespark/vscode-copilot-chat
+          draft: false
+          prerelease: false
