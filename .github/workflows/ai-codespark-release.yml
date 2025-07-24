@@ -60,16 +60,11 @@ jobs:
         run: echo "target=${{ matrix.platform }}-${{ matrix.arch }}" >> $GITHUB_ENV
       - name: Package the extension
         run: npx vsce package --target ${{ env.target }} --out "copilot-chat-${{ env.target }}.vsix"
-      - name: Verify package
-        run: |
-          ls -la *.vsix
-          file copilot-chat-${{ env.target }}.vsix
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: copilot-chat-${{ env.target }}-vsix
           path: "copilot-chat-${{ env.target }}.vsix"
-          retention-days: 7
 
   release:
     permissions:
@@ -92,8 +87,6 @@ jobs:
           pattern: "*-vsix"
           path: vsix-artifacts
           merge-multiple: true
-      - name: List downloaded artifacts
-        run: ls -la vsix-artifacts/
       - name: Create release notes
         run: |
           echo "## Release Notes" > release-notes.md
