@@ -2619,6 +2619,14 @@
 						],
 						"description": "%github.copilot.config.newWorkspaceCreation.enabled%"
 					},
+					"github.copilot.chat.newWorkspace.useContext7": {
+						"type": "boolean",
+						"default": false,
+						"tags": [
+							"experimental"
+						],
+						"description": "%github.copilot.config.newWorkspace.useContext7%"
+					},
 					"github.copilot.chat.agent.currentEditorContext.enabled": {
 						"type": "boolean",
 						"default": true,
@@ -2629,7 +2637,7 @@
 					},
 					"github.copilot.chat.customInstructionsInSystemMessage": {
 						"type": "boolean",
-						"default": false,
+						"default": true,
 						"tags": [
 							"experimental"
 						],
