@@ -18,6 +18,7 @@ import { AzureBYOKModelProvider } from './azureProvider';
 import { BYOKStorageService, IBYOKStorageService } from './byokStorageService';
 import { GeminiBYOKLMProvider } from './geminiProvider';
 import { GroqBYOKLMProvider } from './groqProvider';
+import { LiteLLMLMProvider } from './liteLLMProvider';
 import { OllamaLMProvider } from './ollamaProvider';
 import { OAIBYOKLMProvider } from './openAIProvider';
 import { OpenRouterLMProvider } from './openRouterProvider';
@@ -55,6 +56,7 @@ export class BYOKContrib extends Disposable implements IExtensionContribution {
 			this._store.add(lm.registerChatModelProvider(OAIBYOKLMProvider.providerName.toLowerCase(), this._instantiationService.createInstance(OAIBYOKLMProvider, knownModels[OAIBYOKLMProvider.providerName], this._byokStorageService)));
 			this._store.add(lm.registerChatModelProvider(OpenRouterLMProvider.providerName.toLowerCase(), this._instantiationService.createInstance(OpenRouterLMProvider, this._byokStorageService)));
 			this._store.add(lm.registerChatModelProvider('azure', this._instantiationService.createInstance(AzureBYOKModelProvider, this._byokStorageService)));
+			this._store.add(lm.registerChatModelProvider(LiteLLMLMProvider.providerName.toLowerCase(), this._instantiationService.createInstance(LiteLLMLMProvider, knownModels[LiteLLMLMProvider.providerName], this._byokStorageService)));
 		}
 	}
 	private async fetchKnownModelList(fetcherService: IFetcherService): Promise<Record<string, BYOKKnownModels>> {
