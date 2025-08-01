@@ -2241,6 +2241,22 @@
 							"preview"
 						],
 						"markdownDescription": "%github.copilot.config.byok.ollamaEndpoint%"
+					},
+					"github.copilot.chat.byok.litellmEndpoint": {
+						"type": "string",
+						"default": "https://your-litellm-endpoint/v1",
+						"tags": [
+							"preview"
+						],
+						"markdownDescription": "The LiteLLM server endpoint URL"
+					},
+					"github.copilot.chat.byok.litellmApiKey": {
+						"type": "string",
+						"default": "",
+						"tags": [
+							"preview"
+						],
+						"markdownDescription": "The API key for LiteLLM server (leave empty to use environment variable LITELLM_API_KEY)"
 					}
 				}
 			},

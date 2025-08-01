@@ -2,6 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { IChatModelInformation } from '../../../platform/endpoint/common/endpointProvider';
 import { ILogService } from '../../../platform/log/common/logService';
 import { IFetcherService } from '../../../platform/networking/common/fetcherService';
@@ -19,9 +20,16 @@ export class LiteLLMLMProvider extends BaseOpenAICompatibleLMProvider {
 		@IFetcherService _fetcherService: IFetcherService,
 		@ILogService _logService: ILogService,
 		@IInstantiationService _instantiationService: IInstantiationService,
+		@IConfigurationService private readonly _configurationService: IConfigurationService,
 	) {
-		// Read from environment variables, fallback to placeholder if not set
-		const baseUrl = (globalThis as any).process?.env?.LITELLM_BASE_URL || 'https://your-litellm-endpoint/v1';
+		// Read from VS Code settings first, then environment variables, fallback to placeholder
+		const baseUrl = _configurationService.getConfig(ConfigKey.LiteLLMEndpoint) ||
+			(globalThis as any).process?.env?.LITELLM_BASE_URL ||
+			'https://your-litellm-endpoint/v1';
+
+		_logService.info(`LiteLLM: Initializing with base URL: ${baseUrl}`);
+		_logService.info(`LiteLLM: Known models count: ${Object.keys(knownModels || {}).length}`);
+
 		super(
 			BYOKAuthType.GlobalApiKey,
 			LiteLLMLMProvider.providerName,
@@ -35,15 +43,23 @@ export class LiteLLMLMProvider extends BaseOpenAICompatibleLMProvider {
 	}
 
 	override async prepareLanguageModelChat(options: { silent: boolean }, token: any): Promise<any[]> {
-		// First check if we have API key from environment variable
+		// Check for API key in VS Code settings first, then environment variable
+		const configApiKey = this._configurationService.getConfig(ConfigKey.LiteLLMApiKey);
 		const envApiKey = (globalThis as any).process?.env?.LITELLM_API_KEY;
-		if (envApiKey) {
-			// Store the environment API key in the storage service
-			await this.byokStorageService.storeAPIKey(LiteLLMLMProvider.providerName, envApiKey, BYOKAuthType.GlobalApiKey);
+		const apiKey = configApiKey || envApiKey;
+
+		(this as any)._logService.info(`LiteLLM: prepareLanguageModelChat called, silent: ${options.silent}`);
+		(this as any)._logService.info(`LiteLLM: API key source: ${configApiKey ? 'config' : envApiKey ? 'env' : 'none'}`);
+
+		if (apiKey) {
+			// Store the API key in the storage service
+			await this.byokStorageService.storeAPIKey(LiteLLMLMProvider.providerName, apiKey, BYOKAuthType.GlobalApiKey);
 		}
 
 		// Call the parent implementation
-		return super.prepareLanguageModelChat(options, token);
+		const result = await super.prepareLanguageModelChat(options, token);
+		(this as any)._logService.info(`LiteLLM: prepareLanguageModelChat returned ${result.length} models`);
+		return result;
 	}
 
 	override async getModelInfo(modelId: string, apiKey: string | undefined, modelCapabilities?: BYOKModelCapabilities): Promise<IChatModelInformation> {

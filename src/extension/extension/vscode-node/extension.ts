@@ -9,6 +9,16 @@ import { baseActivate } from '../vscode/extension';
 import { vscodeNodeContributions } from './contributions';
 import { registerServices } from './services';
 
+// Load environment variables from .env file
+try {
+	const dotenv = require('dotenv');
+	const path = require('path');
+	const envPath = path.join(__dirname, '../../../../.env');
+	dotenv.config({ path: envPath });
+} catch (error) {
+	// Silently ignore if dotenv is not available or .env file doesn't exist
+}
+
 // ###############################################################################################
 // ###                                                                                         ###
 // ###                 Node extension that runs ONLY in node.js extension host.                ###
