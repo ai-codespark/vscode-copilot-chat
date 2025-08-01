@@ -44,6 +44,20 @@ jobs:
           npm_config_arch: ${{ matrix.npm_config_arch }}
       - name: Run postinstall script
         run: npm run postinstall
+      - name: Setup environment configuration (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Copy-Item .env.example .env
+          (Get-Content .env) -replace 'LITELLM_API_KEY=your-litellm-api-key-here', 'LITELLM_API_KEY=${{ secrets.LITELLM_API_KEY }}' | Set-Content .env
+          (Get-Content .env) -replace 'https://your-litellm-endpoint/v1', '${{ secrets.LITELLM_BASE_URL }}' | Set-Content .env
+        shell: pwsh
+      - name: Setup environment configuration (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cp .env.example .env
+          sed -i 's|LITELLM_API_KEY=your-litellm-api-key-here|LITELLM_API_KEY=${{ secrets.LITELLM_API_KEY }}|g' .env
+          sed -i 's|https://your-litellm-endpoint/v1|${{ secrets.LITELLM_BASE_URL }}|g' .env
+        shell: bash
       - name: Build packages (Windows)
         if: runner.os == 'Windows'
         run: npm run build
